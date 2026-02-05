@@ -49,6 +49,10 @@ touch arm.urdf
 ```
 edit arm info accordingly in ros2_ws/src/kxsmoveit_robot_description/urdf/arm.urdf
 
+**Meaning of link `origin`:The coordinates of the geometric center of this shape (relative to the previous joint, the first one is relative to the origin)**
+
+**Meaning of joint `origin`: The position relationship between this joint and the previous joint in the initial state (the first one is related to Fixed coordinate system origin)**
+
 ---
 ### setting in urdf
 
@@ -95,7 +99,7 @@ change file name ```arm.urdf``` to `arm.xacro`
 
 this makes the project more scalable.
 
-(这里旧的 `arm.urdf`没舍得删除)
+(I kept my older version of `arm.urdf`)
 
 
 To test whether xacro has built up successfuly:
@@ -142,4 +146,78 @@ colcon build
 source install/setup.bash
 ros2 launch kxsmoveit_robot_description display.launch.xml
 ```
-No need to change configuration manually anymore.
+No need to change configuration manually anymore
+
+# Path & Motion Planning
+
+### Add collision to every link of robotarm
+
+```xml
+      <collision>
+            <geometry>
+                <box size="0.4 0.4 0.1"/>
+            </geometry>
+            <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      </collision>
+```
+then 
+```bash
+cd ros2_ws
+colcon build
+source install/setup.bash 
+ros2 launch kxsmoveit_robot_description display.launch.xml 
+```
+### Run Moveit setup Assistant
+```bash
+ros2 launch moveit_setup_assistant setup_assistant.launch.py 
+```
+in the window, Create New... -> Browse
+
+-> Choose your file -> Load files
+
+Left side: self collision -> Generate collision matrix ok
+
+visual joints -> add -> ![alt text](<Screenshot from 2026-02-02 23-52-51.png>)
+
+Planning groups - add - Kinematics solver:"kdl..." -Add joints(select all and click `>` -> `save`)
+
+Define robot poses -> (diy)
+
+End effectors -> 
+
+Passive joints(no in this one)
+
+ros2 control urdf Mod: already given(only choose `position`in command and state inerfaces)
+
+Ros2 Controllers -> Auto add...
+
+Moveit controllers -> 
+
+Perception ->
+
+Launch files : keep select all
+
+Configuration files -> browse -> Save path: `src/kxsmoveit_robot_moveit_config` (a new folder should be created to avoid any errors) **then a new folder `ros2_ws/src/kxsmoveit_robot_moveit_config`with, most importantly, a srdf file is generated**
+
+then you can see a folder is created
+
+
+```bash
+cd ros2_ws
+colcon build
+source install/setup.bash 
+ros2 launch kxsmoveit_robot_moveit_config demo.launch.py
+```
+
+if you see warnings like `[move_group-3] what(): parameter 'robot_description_planning.joint_limits.joint1.max_velocity' has invalid type: expected [double] got [integer] `
+
+change every integer parameter in `ros2_ws/src/kxsmoveit_robot_moveit_config/config/joint_limits.yaml`
+to double type and build again.
+
+In rviz, you can plan and execute a path from ant to some state
+
+A linear path can be generated only when it doesn't encounter singularity.
+
+
+
+
